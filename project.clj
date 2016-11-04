@@ -5,9 +5,10 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [aleph "0.4.2-alpha8"]
+                 [io.netty/netty-all "4.1.0.Final"]
                  [manifold "0.1.6-alpha3"]
-                 [amazonica "0.3.77"]
-                 [cheshire "5.6.3"]]
+                 [cheshire "5.6.3"]
+                 [amazonica "0.3.77"]]
   :plugins [[lein-auto "0.1.2"]
             [lein-ancient "0.6.10"]
             [lein-cljfmt "0.3.0"]
