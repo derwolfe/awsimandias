@@ -11,7 +11,7 @@
   (io/input-stream (.getBytes s)))
 
 (defn server-mutual-auth-tls-context
-  "Create a mutually authenticated TLS context.
+  "Create a mutually authenticated TLS context for servers
 
   ca - an x509 certificate that forms the trust root for the server's
   certificate.
@@ -43,5 +43,5 @@
     (doto
         (SslContextBuilder/forClient)
       (.trustManager server-cert-chain)
-      (.keyManager client-cert-chain client-key nil)
+      (.keyManager client-cert-chain key nil)
       (.build))))
