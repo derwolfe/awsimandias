@@ -205,5 +205,7 @@ SCEYvVh9qtzKCznwd1pPCbhnlw==
 -----END PRIVATE KEY-----")
 
 (deftest mutual-auth-tsl-context-works
-  (testing "it does not explode"
-    (server/build-tls-context ca-cert server-cert pkcs8-server-key)))
+  (testing "server context does not explode"
+    (server/server-mutual-auth-tls-context ca-cert server-cert pkcs8-server-key))
+  (testing "client context does not explode"
+    (server/client-mutual-auth-tls-context ca-cert client-cert pkcs8-client-key server-cert)))
