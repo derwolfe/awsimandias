@@ -1,5 +1,8 @@
 (ns awsimandias.server-test
   (:require [awsimandias.server :as server]
+            [aleph
+             [http :as http]
+             [netty :as netty]]
             [clojure.java.io :as io]
             [clojure.test :refer :all]))
 
@@ -209,3 +212,40 @@ SCEYvVh9qtzKCznwd1pPCbhnlw==
     (server/server-mutual-auth-tls-context ca-cert server-cert pkcs8-server-key))
   (testing "client context does not explode"
     (server/client-mutual-auth-tls-context ca-cert client-cert pkcs8-client-key server-cert)))
+
+
+(def ^:dynamic ^io.aleph.dirigiste.IPool *pool* nil)
+
+(netty/leak-detector-level! :paranoid)
+
+(def port 8888)
+(def string-response "dawoon likes to play")
+
+(defn string-handler [request]
+  {:status 200
+   :body string-response})
+
+(defmacro with-server [server & body]
+  `(let [server# ~server]
+     (binding [*pool* (http/connection-pool {:connection-options {:insecure? false}})]
+       (try
+         ~@body
+         (finally
+           (.close ^java.io.Closeable server#)
+           (.shutdown *pool*)
+           (netty/wait-for-close server#))))))
+
+(deftest mutual-auth-context-integration
+  (testing "a client and server can talk with valid certs, keys, and a ca"
+    (let [client-ctx
+          (server/client-mutual-auth-tls-context ca-cert client-cert pkcs8-client-key server-cert)
+
+          server-ctx
+          (server/server-mutual-auth-tls-context ca-cert server-cert pkcs8-server-key)
+
+          client-pool
+          (http/connection-pool {:ssl-context client-ctx :insecure? false})]
+      (prn client-ctx server-ctx)
+      (with-server (http/start-server string-handler {:port port :ssl-context server-ctx})
+        (is (= string-response
+               @(http/get (str "https://127.0.0.1:" port) {:pool client-pool})))))))

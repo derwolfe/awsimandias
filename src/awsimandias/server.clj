@@ -4,13 +4,13 @@
    [clojure.java.io :as io])
   (:import
    [java.io InputStream]
-   [io.netty.handler.ssl SslContextBuilder ClientAuth]))
+   [io.netty.handler.ssl SslContext SslContextBuilder ClientAuth]))
 
 (defn ^InputStream string->input-stream
   [s]
   (io/input-stream (.getBytes s)))
 
-(defn server-mutual-auth-tls-context
+(defn ^SslContext server-mutual-auth-tls-context
   "Create a mutually authenticated TLS context for servers
 
   ca - an x509 certificate that forms the trust root for the server's
@@ -21,13 +21,13 @@
   [ca server-cert server-key]
   (let [cert-chain (string->input-stream (str ca server-cert))
         key (string->input-stream server-key)]
-    (doto
-        (SslContextBuilder/forServer cert-chain key)
-      (.clientAuth ClientAuth/REQUIRE)
-      (.build))))
+    (.build
+     (doto
+         (SslContextBuilder/forServer cert-chain key)
+       (.clientAuth ClientAuth/REQUIRE)))))
 
 
-(defn client-mutual-auth-tls-context
+(defn ^SslContext client-mutual-auth-tls-context
   "Creates a mutually authenticated TLS context for client
 
   ca - an x509 certificate that forms the trust root for the server's
@@ -40,8 +40,8 @@
   (let [client-cert-chain (string->input-stream (str ca client-cert))
         server-cert-chain (string->input-stream (str ca server-cert))
         key (string->input-stream client-key)]
-    (doto
-        (SslContextBuilder/forClient)
-      (.trustManager server-cert-chain)
-      (.keyManager client-cert-chain key nil)
-      (.build))))
+    (.build
+     (doto
+         (SslContextBuilder/forClient)
+       (.trustManager server-cert-chain)
+       (.keyManager client-cert-chain key nil)))))
