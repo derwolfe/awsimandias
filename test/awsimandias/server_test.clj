@@ -245,7 +245,6 @@ SCEYvVh9qtzKCznwd1pPCbhnlw==
 
           client-pool
           (http/connection-pool {:ssl-context client-ctx :insecure? false})]
-      (prn client-ctx server-ctx)
       (with-server (http/start-server string-handler {:port port :ssl-context server-ctx})
         (is (= string-response
                @(http/get (str "https://127.0.0.1:" port) {:pool client-pool})))))))

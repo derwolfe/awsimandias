@@ -19,11 +19,11 @@
   server-key (string)- a pkcs#8 encoded string representing the private key of
   the server."
   [ca server-cert server-key]
-  (let [cert-chain (string->input-stream (str ca server-cert))
+  (let [cert (string->input-stream server-cert)
         key (string->input-stream server-key)]
     (.build
      (doto
-         (SslContextBuilder/forServer cert-chain key)
+         (SslContextBuilder/forServer cert key)
        (.clientAuth ClientAuth/REQUIRE)))))
 
 
@@ -37,11 +37,13 @@
   the server.
   server-cert (string) - an x509 certificate issue by the ca."
   [ca client-cert client-key server-cert]
-  (let [client-cert-chain (string->input-stream (str ca client-cert))
-        server-cert-chain (string->input-stream (str ca server-cert))
+  (let [;;client-cert-chain (string->input-stream (str ca client-cert))
+        ;;server-cert-chain (string->input-stream (str ca server-cert))
+        client (string->input-stream client-cert)
+        server (string->input-stream server-cert)
         key (string->input-stream client-key)]
     (.build
      (doto
          (SslContextBuilder/forClient)
-       (.trustManager server-cert-chain)
-       (.keyManager client-cert-chain key nil)))))
+       (.trustManager server)
+       (.keyManager client key nil)))))
