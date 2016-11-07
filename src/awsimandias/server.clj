@@ -1,49 +1,75 @@
 (ns awsimandias.server
   (:require
    [aleph.http :as http]
+   [clojure.string :as str]
    [clojure.java.io :as io])
   (:import
-   [java.io InputStream]
-   [io.netty.handler.ssl SslContext SslContextBuilder ClientAuth]))
+   java.io.InputStream
+   java.security.KeyStore
+   java.security.KeyFactory
+   java.security.PrivateKey
+   java.security.cert.X509Certificate
+   java.security.cert.CertificateFactory
+   java.security.spec.PKCS8EncodedKeySpec
+   java.io.ByteArrayInputStream
+   javax.xml.bind.DatatypeConverter
+   io.netty.handler.ssl.SslContext
+   io.netty.handler.ssl.SslContextBuilder
+   io.netty.handler.ssl.ClientAuth))
 
-(defn ^InputStream string->input-stream
-  [s]
-  (io/input-stream (.getBytes s)))
+;; things needed to setup the certificate objects for netty
+;; this is all from `https://github.com/pyr/net`
 
-(defn ^SslContext server-mutual-auth-tls-context
-  "Create a mutually authenticated TLS context for servers
+(defn ^X509Certificate s->cert
+  [factory input]
+  (.generateCertificate ^CertificateFactory factory (ByteArrayInputStream. (.getBytes ^String input))))
 
-  ca - an x509 certificate that forms the trust root for the server's
-  certificate.
-  server-cert (string) - an x509 certificate issue by the ca.
-  server-key (string)- a pkcs#8 encoded string representing the private key of
-  the server."
-  [ca server-cert server-key]
-  (let [cert (string->input-stream server-cert)
-        key (string->input-stream server-key)]
-    (.build
-     (doto
-         (SslContextBuilder/forServer cert key)
-       (.clientAuth ClientAuth/REQUIRE)))))
+(defn ^PrivateKey s->pkey
+  "When reading private keys, we unfortunately have to
+  read PKCS8 encoded keys, short of pulling-in bouncy castle :-(
+  Since these keys are usually DER encoded, they're unconvienent to
+  have laying around in strings. We resort to base64 encoded DER here."
+  [^KeyFactory factory input]
+  (let [wo-words (last (re-find #"(?ms)^-----BEGIN ?.*? PRIVATE KEY-----$(.+)^-----END ?.*? PRIVATE KEY-----$" input))
+        bytes (DatatypeConverter/parseBase64Binary wo-words)
+        kspec (PKCS8EncodedKeySpec. bytes)]
+    (.generatePrivate factory kspec)))
 
+(defn ->chain
+  [^CertificateFactory fact cert-spec]
+  (if (sequential? cert-spec)
+    (into-array X509Certificate (map (partial s->cert fact) cert-spec))
+    (into-array X509Certificate [(s->cert fact cert-spec)])))
 
-(defn ^SslContext client-mutual-auth-tls-context
-  "Creates a mutually authenticated TLS context for client
+(defn client-context
+  "Build an SSL client context for netty"
+  [{:keys [cert pkey authority]}]
+  (let [builder (SslContextBuilder/forClient)
+        cert-fact (CertificateFactory/getInstance "X.509")
+        key-fact  (KeyFactory/getInstance "RSA")
+        cert      (s->cert cert-fact cert)
+        authority (s->cert cert-fact authority)
+        pkey      (s->pkey key-fact pkey)
+        chain     (into-array X509Certificate [cert authority])]
+    (.keyManager builder ^PrivateKey pkey ^"[Ljava.security.cert.X509Certificate;" chain)
+    (.trustManager builder ^"[Ljava.security.cert.X509Certificate;" chain)
+    (.build builder)))
 
-  ca - an x509 certificate that forms the trust root for the server's
-  certificate.
-  client-cert (string) - an x509 certificate issue by the ca.
-  client-key (string)- a pkcs#8 encoded string representing the private key of
-  the server.
-  server-cert (string) - an x509 certificate issue by the ca."
-  [ca client-cert client-key server-cert]
-  (let [;;client-cert-chain (string->input-stream (str ca client-cert))
-        ;;server-cert-chain (string->input-stream (str ca server-cert))
-        client (string->input-stream client-cert)
-        server (string->input-stream server-cert)
-        key (string->input-stream client-key)]
-    (.build
-     (doto
-         (SslContextBuilder/forClient)
-       (.trustManager server)
-       (.keyManager client key nil)))))
+(defn server-context
+  "Build an SSL client context for netty"
+  [{:keys [pkey cert ca-cert ciphers]}]
+           ;; cache-size session-timeout storage]}]
+  (let [fact     (CertificateFactory/getInstance "X.509")
+        certs    (->chain fact cert)
+        key-fact (KeyFactory/getInstance "RSA")
+        pk       (s->pkey key-fact pkey)
+        builder  (SslContextBuilder/forServer ^PrivateKey pk ^"[Ljava.security.cert.X509Certificate;" certs)]
+    ;; (when cache-size
+    ;;   (.cacheSize (long cache-size)))
+    ;; (when session-timeout
+    ;;   (.sessionTimeout (long session-timeout)))
+    ;; (.ciphers ciphers)
+    (.trustManager builder
+                   ^"[Ljava.security.cert.X509Certificate;" (into-array X509Certificate (->chain fact ca-cert)))
+    (.clientAuth builder ClientAuth/REQUIRE)
+    (.build builder)))

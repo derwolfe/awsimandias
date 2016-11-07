@@ -209,9 +209,15 @@ SCEYvVh9qtzKCznwd1pPCbhnlw==
 
 (deftest mutual-auth-tsl-context-works
   (testing "server context does not explode"
-    (server/server-mutual-auth-tls-context ca-cert server-cert pkcs8-server-key))
+    (let [args {:cert server-cert
+                :pkey pkcs8-server-key
+                :authority ca-cert}]
+      (server/server-context args)))
   (testing "client context does not explode"
-    (server/client-mutual-auth-tls-context ca-cert client-cert pkcs8-client-key server-cert)))
+    (let [args {:cert client-cert
+                :pkey pkcs8-client-key
+                :authority ca-cert}]
+      (server/client-context args))))
 
 
 (def ^:dynamic ^io.aleph.dirigiste.IPool *pool* nil)
@@ -237,11 +243,15 @@ SCEYvVh9qtzKCznwd1pPCbhnlw==
 
 (deftest mutual-auth-context-integration
   (testing "a client and server can talk with valid certs, keys, and a ca"
-    (let [client-ctx
-          (server/client-mutual-auth-tls-context ca-cert client-cert pkcs8-client-key server-cert)
+    (let [client-args {:cert server-cert
+                       :pkey pkcs8-server-key
+                       :authority ca-cert}
+          client-ctx (server/client-context client-args)
 
-          server-ctx
-          (server/server-mutual-auth-tls-context ca-cert server-cert pkcs8-server-key)
+          server-args {:cert client-cert
+                       :pkey pkcs8-client-key
+                       :authority ca-cert}
+          server-ctx (server/server-context server-args)
 
           client-pool
           (http/connection-pool {:ssl-context client-ctx :insecure? false})]
