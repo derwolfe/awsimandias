@@ -33,10 +33,11 @@
       (ec2/describe-instances))))
 
 (defn all-ec2-instances!
-  "Get all ec2 instances across all regions. This returns a deferred that will
-  fire when each region has returned its response.
+  "Get all ec2 instances across all regions for a given account.
 
-  creds - a map containing the keys :access-key and :secret-key"
+  creds - a map containing the keys :access-key and :secret-key
+
+  Returns a deferred that will fire when each region has returned its response."
   [creds]
   (md/let-flow [region-names (ec2-region-names! creds)]
     (apply md/zip (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))))
