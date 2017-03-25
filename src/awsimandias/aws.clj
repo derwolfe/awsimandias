@@ -39,8 +39,7 @@
   creds - a map containing the keys :access-key and :secret-key"
   [creds]
   (md/let-flow [region-names (ec2-region-names! creds)]
-    (apply md/zip
-           (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))))
+    (apply md/zip (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))))
 
 ;; then use that to make all AWS calls
 
