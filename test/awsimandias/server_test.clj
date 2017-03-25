@@ -229,7 +229,7 @@ SCEYvVh9qtzKCznwd1pPCbhnlw==
            (.shutdown *pool*)
            (netty/wait-for-close server#))))))
 
-(deftest mutual-auth-context-integration
+#_(deftest mutual-auth-context-integration
   (testing "a client and server can talk with valid certs, keys, and a ca"
     (let [client-args {:cert client-cert
                        :pkey pkcs8-client-key
