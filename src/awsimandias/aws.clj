@@ -61,7 +61,6 @@
     (ac/with-credential [access-key secret-key endpoint-name]
       (ssm/describe-instance-information {}))))
 
-
 (defn all-ssm-instances!
   "Get all of the ec2 instances with SSM enabled across all regions for a given account.
 

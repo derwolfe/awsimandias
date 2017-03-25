@@ -230,19 +230,19 @@ SCEYvVh9qtzKCznwd1pPCbhnlw==
            (netty/wait-for-close server#))))))
 
 #_(deftest mutual-auth-context-integration
-  (testing "a client and server can talk with valid certs, keys, and a ca"
-    (let [client-args {:cert client-cert
-                       :pkey pkcs8-client-key
-                       :authority ca-cert}
-          client-ctx (server/client-context client-args)
+    (testing "a client and server can talk with valid certs, keys, and a ca"
+      (let [client-args {:cert client-cert
+                         :pkey pkcs8-client-key
+                         :authority ca-cert}
+            client-ctx (server/client-context client-args)
 
-          server-args {:cert server-cert
-                       :pkey pkcs8-server-key
-                       :authority ca-cert}
-          server-ctx (server/server-context server-args)
+            server-args {:cert server-cert
+                         :pkey pkcs8-server-key
+                         :authority ca-cert}
+            server-ctx (server/server-context server-args)
 
-          client-pool
-          (http/connection-pool {:ssl-context client-ctx :insecure? false})]
-      (with-server (http/start-server string-handler {:port port :ssl-context server-ctx})
-        (is (= string-response
-               @(http/get (str "https://127.0.0.1:" port) {:pool client-pool})))))))
+            client-pool
+            (http/connection-pool {:ssl-context client-ctx :insecure? false})]
+        (with-server (http/start-server string-handler {:port port :ssl-context server-ctx})
+          (is (= string-response
+                 @(http/get (str "https://127.0.0.1:" port) {:pool client-pool})))))))
