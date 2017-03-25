@@ -23,4 +23,6 @@
   ;; talk to AWS.
   (let [creds (accounts-from-env!)]
     (testing "it gets all of them when they are there"
-      (is (= [] @(apply md/zip (map #(aws/all-ec2-instances! %) creds)))))))
+      (is (= [] @(apply md/zip (map #(aws/all-ec2-instances! %) creds)))))
+    (testing "it gets all of ssms when they are there"
+      (is (= [] @(apply md/zip (map #(aws/all-ssm-instances! %) creds)))))))

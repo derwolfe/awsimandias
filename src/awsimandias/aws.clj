@@ -1,4 +1,6 @@
 (ns awsimandias.aws
+  (:import
+   [com.amazonaws.regions Region RegionUtils])
   (:require
    [amazonica.core :as ac]
    [amazonica.aws.ec2 :as ec2]
@@ -41,6 +43,33 @@
   [creds]
   (md/let-flow [region-names (ec2-region-names! creds)]
     (apply md/zip (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))))
+
+(defn ssm-regions
+  "Extract the SSM able regions from the java SDK. This could lag behind what is
+  available from the HTTP api."
+  []
+  (map #(.getName ^Region %) (RegionUtils/getRegionsForService "ssm")))
+
+(defn ssm-instances!
+  "Find which ec2 instances have SSM enabled and use the SSM service to query these hosts.
+
+  creds - a map containing the keys :access-key, :secret-key, and the region name
+
+  Returns a deferred that fires when all SSM instance information has been returned"
+  [{:keys [access-key secret-key endpoint-name]}]
+  (md/future
+    (ac/with-credential [access-key secret-key endpoint-name]
+      (ssm/describe-instance-information {}))))
+
+
+(defn all-ssm-instances!
+  "Get all of the ec2 instances with SSM enabled across all regions for a given account.
+
+  creds - a map with a :secret-key and :access-key
+
+  Returns a deferred that fires after all regions have returned"
+  [creds]
+  (apply md/zip (map #(ssm-instances! (assoc creds :endpoint-name %)) (ssm-regions))))
 
 ;; then use that to make all AWS calls
 
