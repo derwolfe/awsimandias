@@ -8,7 +8,9 @@
                  [io.netty/netty-all "4.1.0.Final"]
                  [manifold "0.1.6-alpha3"]
                  [cheshire "5.6.3"]
-                 [amazonica "0.3.77"]]
+                 [amazonica "0.3.77"]
+                 [environ "1.1.0"]
+                 ]
   :plugins [[lein-auto "0.1.2"]
             [lein-ancient "0.6.10"]
             [lein-cljfmt "0.3.0"]
@@ -21,7 +23,9 @@
                            :unused-locals
                            :unused-private-vars]
              :exclude-linters [:constant-test]}
+  :cljfmt {:indents {let-flow [[:inner 0]]
+                     catch [[:inner 0]]}}
   :global-vars {*warn-on-reflection* true}
-  :main ^:skip-aot awsimandias.core
+  :main ^:skip-aot awsimandias.aws
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
