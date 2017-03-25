@@ -6,6 +6,7 @@
             [clojure.java.io :as io]
             [clojure.test :refer :all]))
 
+;; these should be generated automatically
 
 (def ca-cert "-----BEGIN CERTIFICATE-----
 MIICyTCCAbGgAwIBAgIQDevqk5o7Q9+N7FegsJ/95DANBgkqhkiG9w0BAQsFADAW
@@ -207,19 +208,6 @@ dD5kmU2dW2AhH05bx9Dhx808zkIjqIieL8NDVGardc5hX+SnnqRA4/lvKZEWHens
 SCEYvVh9qtzKCznwd1pPCbhnlw==
 -----END PRIVATE KEY-----")
 
-(deftest mutual-auth-tsl-context-works
-  (testing "server context does not explode"
-    (let [args {:cert server-cert
-                :pkey pkcs8-server-key
-                :authority ca-cert}]
-      (server/server-context args)))
-  (testing "client context does not explode"
-    (let [args {:cert client-cert
-                :pkey pkcs8-client-key
-                :authority ca-cert}]
-      (server/client-context args))))
-
-
 (def ^:dynamic ^io.aleph.dirigiste.IPool *pool* nil)
 
 (netty/leak-detector-level! :paranoid)
@@ -243,13 +231,13 @@ SCEYvVh9qtzKCznwd1pPCbhnlw==
 
 (deftest mutual-auth-context-integration
   (testing "a client and server can talk with valid certs, keys, and a ca"
-    (let [client-args {:cert server-cert
-                       :pkey pkcs8-server-key
+    (let [client-args {:cert client-cert
+                       :pkey pkcs8-client-key
                        :authority ca-cert}
           client-ctx (server/client-context client-args)
 
-          server-args {:cert client-cert
-                       :pkey pkcs8-client-key
+          server-args {:cert server-cert
+                       :pkey pkcs8-server-key
                        :authority ca-cert}
           server-ctx (server/server-context server-args)
 

@@ -22,6 +22,6 @@
                            :unused-private-vars]
              :exclude-linters [:constant-test]}
   :global-vars {*warn-on-reflection* true}
-  :main ^:skip-aot awsimandias.core
+  :main ^:skip-aot awsimandias.aws
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
