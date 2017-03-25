@@ -21,6 +21,8 @@
                            :unused-locals
                            :unused-private-vars]
              :exclude-linters [:constant-test]}
+  :cljfmt {:indents {let-flow [[:inner 0]]
+                     catch [[:inner 0]]}}
   :global-vars {*warn-on-reflection* true}
   :main ^:skip-aot awsimandias.aws
   :target-path "target/%s"
