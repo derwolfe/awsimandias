@@ -2,10 +2,23 @@
   (:import
    [com.amazonaws.regions Region RegionUtils])
   (:require
+   [clojure.string :as str]
+   [environ.core :refer [env]]
    [amazonica.core :as ac]
    [amazonica.aws.ec2 :as ec2]
    [amazonica.aws.simplesystemsmanagement :as ssm]
    [manifold.deferred :as md]))
+
+(defn accounts-from-env!
+  []
+  (let [acct-string (:accounts env)
+        creds (str/split acct-string #";")
+        secrets-and-keys (map #(str/split % #":") creds)
+        as-creds (map (fn [cred-vec]
+                        {:access-key (first cred-vec)
+                         :secret-key (second cred-vec)})
+                      secrets-and-keys)]
+    as-creds))
 
 ;; goal - enumerate the entirety of a customer's AWS ec2 footprint with the
 ;; maximum amount of concurrency and hopefully parallelism available to the
@@ -42,7 +55,10 @@
   Returns a deferred that will fire when each region has returned its response."
   [creds]
   (md/let-flow [region-names (ec2-region-names! creds)]
-    (apply md/zip (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))))
+    (md/chain
+     (apply md/zip (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))
+     (fn [cs]
+       (mapcat #(:reservations %) cs)))))
 
 (defn ssm-regions
   "Extract the SSM able regions from the java SDK. This could lag behind what is
@@ -68,7 +84,11 @@
 
   Returns a deferred that fires after all regions have returned"
   [creds]
-  (apply md/zip (map #(ssm-instances! (assoc creds :endpoint-name %)) (ssm-regions))))
+  (let [regions (ssm-regions)]
+    (md/chain
+     (apply md/zip (map #(ssm-instances! (assoc creds :endpoint-name %)) regions))
+     (fn [cs]
+       (mapcat #(:instance-information-list %) cs)))))
 
 ;; then use that to make all AWS calls
 
