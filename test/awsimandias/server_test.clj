@@ -1,10 +1,11 @@
 (ns awsimandias.server-test
-  (:require [awsimandias.server :as server]
-            [aleph
-             [http :as http]
-             [netty :as netty]]
-            [clojure.java.io :as io]
-            [clojure.test :refer :all]))
+  (:require
+   ;;[awsimandias.server :as server]
+   [aleph
+    [http :as http]
+    [netty :as netty]]
+   [clojure.java.io :as io]
+   [clojure.test :refer :all]))
 
 ;; these should be generated automatically
 
