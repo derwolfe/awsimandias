@@ -106,19 +106,26 @@
 
   (Note) That seems weird; why should there be an ssm enabled device if there
   isn't one in ec2?"
-  [ec2 ssm]
-  ;; use the instance ID to match the two up. If equal, modify or assoc-in the
-  ;; os-related keys. Otherwise, leave alone?
-  [])
+  [ec2s ssms]
+  ;; read these into a dictionary
+  (let [ssms-by-id (group-by #(:instance-id %) ssms)]
+    (for [ec2 ec2s
+          :let [instance-id (:instance-id ec2)
+                ssm (get ssms-by-id instance-id)]]
+      (if (not (nil? ssm))
+        (assoc ec2 :has-ssm true)
+        (assoc ec2 :has-ssm false)))))
 
-;; then use that to make all AWS calls
+(defn ssmified-ec2-instances!
+  "Get the ec2 instances and their ssm information. Once done, smash the lists
+  together and tell us which devices have ssm.
 
-;; for all accounts
-;; these can be cached
-;; get all ssm regions
-;; get all ec2 regions
+  cred - a credential map with a :secret-key and :access-key
 
-
-;; for a given region and customer
-;; get all ec2 instances
-;; get all ssm instances
+  Returns a deferred that fires when all of the ec2 and ssm info for every
+  instance in every region for the credential's account has been fetched and
+  those instances havebeen reconciled."
+  [cred]
+  (md/let-flow [ec2s (all-ec2-instances! cred)
+                ssms (all-ssm-instances! cred)]
+    (ssmify-ec2 ec2s ssms)))
