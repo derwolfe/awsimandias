@@ -10,7 +10,6 @@
    [manifold.deferred :as md]
    [taoensso.timbre :as timbre]))
 
-
 (defn accounts-from-env!
   []
   (let [acct-string (:accounts env)
@@ -48,7 +47,6 @@
   [{:keys [access-key secret-key endpoint-name]}]
   (md/future
     (ac/with-credential [access-key secret-key endpoint-name]
-      (timbre/info "called" endpoint-name)
       (ec2/describe-instances))))
 
 (defn all-ec2-instances!
