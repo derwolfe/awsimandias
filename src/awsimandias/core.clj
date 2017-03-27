@@ -28,6 +28,7 @@
   []
   (.start (Thread. (fn [] (.join (Thread/currentThread))) "staying alive")))
 
+;; make it so compojure doesn't block on deferreds being dereferenced
 (extend-protocol Renderable
   manifold.deferred.Deferred
   (render [md _] md))

@@ -90,6 +90,22 @@
      (fn [cs]
        (mapcat #(:instance-information-list %) cs)))))
 
+(defn ssmify-ec2
+  "Given two seqs, one of ec2 maps, and the other of ssm maps, match up the ec2
+  instances with their ec2 counterparts. If there are no ec2 devices, then the
+  ssm information won't show up.
+
+  Returns a list of ec2 devices (maps that should have a spec, maybe?) that will
+  have had their os-name and os-versions fortified by the information present in
+  ssm.
+
+  (Note) That seems weird; why should there be an ssm enabled device if there
+  isn't one in ec2?"
+  [ec2 ssm]
+  ;; use the instance ID to match the two up. If equal, modify or assoc-in the
+  ;; os-related keys. Otherwise, leave alone?
+)
+
 ;; then use that to make all AWS calls
 
 ;; for all accounts
