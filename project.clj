@@ -26,6 +26,10 @@
   :cljfmt {:indents {let-flow [[:inner 0]]
                      catch [[:inner 0]]}}
   :global-vars {*warn-on-reflection* true}
+
   :main ^:skip-aot awsimandias.aws
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}
+             :user {:dependencies [[pjstadig/humane-test-output "0.8.1"]]
+                    :injections [(require 'pjstadig.humane-test-output)
+                                 (pjstadig.humane-test-output/activate!)]}})
