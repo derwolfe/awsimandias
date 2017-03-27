@@ -16,4 +16,12 @@
         (is (= 3 (count result)))))
     (testing "it gets all of ssms when they are there"
       (let [result @(aws/all-ssm-instances! creds)]
-        (is (= 1 (count result)))))))
+        (is (= 1 (count result)))))
+    (testing "get the ssmified instances"
+      (let [result @(aws/ssmified-ec2-instances! creds)
+            with-ssm (filter #(= true (:has-ssm %)) result)
+            without-ssm (filter #(= false (:has-ssm %)) result)]
+        (pprint/pprint result)
+        (is (= 3 (count result)))
+        (is (= 1 (count with-ssm)))
+        (is (= 2 (count without-ssm)))))))
