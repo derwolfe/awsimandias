@@ -59,11 +59,11 @@
   Returns a deferred that will fire when each region has returned its response."
   [creds]
   (md/let-flow [region-names (ec2-region-names! creds)]
-    (timbre/info "ec2" (vec region-names))
     (md/chain
      (apply md/zip (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))
      (fn [cs]
-       (mapcat #(:reservations %) cs)))))
+       (->> (mapcat #(:reservations %) cs)
+            (mapcat #(:instances %)))))))
 
 (defn ssm-regions
   "Extract the SSM able regions from the java SDK. This could lag behind what is
