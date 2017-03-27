@@ -13,12 +13,15 @@
 
 (defn ssm-instances-handler
   [req]
-  (md/chain
-   (aws/all-ssm-instances! (first @creds))
-   (fn [ds]
-     {:status 200
-      :headers {"Content-Type" "application/edn"}
-      :body (pr-str ds)})))
+  (timbre/info "request for SSM/EC2")
+  (let [cred (first @creds)]
+    (md/chain
+     (aws/ssmified-ec2-instances! cred)
+     (fn [response]
+       (timbre/info "completed request for SSM/EC2")
+       {:status  200
+        :headers {"Content-Type" "application/edn"}
+        :body    (pr-str response)}))))
 
 (cjc/defroutes routes
   (cjc/GET "/" [] ssm-instances-handler)
