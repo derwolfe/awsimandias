@@ -7,7 +7,9 @@
    [amazonica.core :as ac]
    [amazonica.aws.ec2 :as ec2]
    [amazonica.aws.simplesystemsmanagement :as ssm]
-   [manifold.deferred :as md]))
+   [manifold.deferred :as md]
+   [taoensso.timbre :as timbre]))
+
 
 (defn accounts-from-env!
   []
@@ -34,7 +36,8 @@
   (md/future
     (ac/with-credential [access-key secret-key "us-east-1"]
       (->> (ec2/describe-regions)
-           (map :region-name)))))
+           :regions
+           (map :endpoint)))))
 
 (defn ec2-instances!
   "Get all ec2 instances for a specific account in a specific region.
@@ -45,6 +48,7 @@
   [{:keys [access-key secret-key endpoint-name]}]
   (md/future
     (ac/with-credential [access-key secret-key endpoint-name]
+      (timbre/info "called" endpoint-name)
       (ec2/describe-instances))))
 
 (defn all-ec2-instances!
@@ -55,6 +59,7 @@
   Returns a deferred that will fire when each region has returned its response."
   [creds]
   (md/let-flow [region-names (ec2-region-names! creds)]
+    (timbre/info "ec2" (vec region-names))
     (md/chain
      (apply md/zip (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))
      (fn [cs]
@@ -104,7 +109,7 @@
   [ec2 ssm]
   ;; use the instance ID to match the two up. If equal, modify or assoc-in the
   ;; os-related keys. Otherwise, leave alone?
-)
+  [])
 
 ;; then use that to make all AWS calls
 
