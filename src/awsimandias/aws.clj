@@ -12,14 +12,9 @@
 
 (defn accounts-from-env!
   []
-  (let [acct-string (:accounts env)
-        creds (str/split acct-string #";")
-        secrets-and-keys (map #(str/split % #":") creds)
-        as-creds (map (fn [cred-vec]
-                        {:access-key (first cred-vec)
-                         :secret-key (second cred-vec)})
-                      secrets-and-keys)]
-    as-creds))
+  (let [{:keys [aws-access-key aws-secret-key]} env]
+    {:access-key aws-access-key
+     :secret-key aws-secret-key}))
 
 ;; goal - enumerate the entirety of a customer's AWS ec2 footprint with the
 ;; maximum amount of concurrency and hopefully parallelism available to the
