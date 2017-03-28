@@ -31,9 +31,6 @@
                      catch [[:inner 0]]}}
   :global-vars {*warn-on-reflection* true}
   :main ^:skip-aot awsimandias.core
-  ;; :perforate {:environments [{:name :version1
-  ;;                             :profiles [:test]
-  ;;                             :namespaces [awsimandias.bench.aws]}]}
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
              :user {:dependencies [[pjstadig/humane-test-output "0.8.1"]]
