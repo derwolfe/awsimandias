@@ -1,4 +1,4 @@
-(ns awsimandias.benchmarks
+(ns awsimandias.bench.aws
   (:require
    [awsimandias.aws :as aws]
    [perforate.core :as perf]))
