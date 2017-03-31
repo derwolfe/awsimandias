@@ -38,10 +38,16 @@
   creds - a map containing access-key, secret-key, and endpoint name
 
   Returns a deferred that fires once describe instances completes."
-  [{:keys [access-key secret-key endpoint-name]}]
+  [{:keys [access-key secret-key endpoint-name region-name]}]
   (md/future
     (ac/with-credential [access-key secret-key endpoint-name]
-      (ec2/describe-instances))))
+      (md/chain
+       (ec2/describe-instances)
+       (fn [ec2s]
+         (let [rs (:reservations ec2s)
+               instances (flatten (map :instances rs))
+               with-regions (map #(assoc % :aws-region-name region-name) instances)]
+           with-regions))))))
 
 (defn all-ec2-instances!
   "Get all ec2 instances across all regions for a given account.
@@ -54,14 +60,9 @@
     (md/chain
      (apply md/zip (for [region regions
                          :let [{:keys[region-name endpoint]} region
-                               region-cred (assoc creds :endpoint-name endpoint)]]
-                         (md/chain
-                          (ec2-instances! region-cred)
-                          (fn [ec2s]
-                            (->> (:reservations ec2s)
-                                 :instances
-                                 (map #(assoc % :aws-region-name region-name)))))))
-     (fn [ec2s] (prn ec2s) ec2s)
+                               args (-> (assoc creds :endpoint-name endpoint)
+                                        (assoc :region-name region-name))]]
+                     (ec2-instances! args)))
      #(flatten %))))
 
 (defn ssm-regions
@@ -131,12 +132,16 @@
      (apply md/zip
             (for [region regions
                   :let [ec2s-in-region (filter #(= (:aws-region-name %) region) ec2s)
-                        image-ids (map #(:image-id %) ec2s-in-region)
-                        _ (prn image-ids)
-                        ]]
-              (if (and (some? image-ids) (not (empty? image-ids)))
+                        image-ids (map #(:image-id %) ec2s-in-region)]]
+              (if (not (empty? image-ids))
                 (ec2-images! image-ids (assoc creds :endpoint-name region))
-                (md/success-deferred '())))))))
+                (md/success-deferred ':images '()))))
+     (fn [imgs]
+       (let [by-region (flatten (map #(:images %) imgs))]
+         (for [image by-region
+               :let [{:keys [image-id name]} image]
+               :when (some? image)]
+           {:image-id image-id :name name}))))))
 
 (defn ssmified-ec2-instances!
   "Get the ec2 instances and their ssm information. Once done, smash the lists
@@ -152,5 +157,5 @@
                 ssms (all-ssm-instances! cred)]
     (md/chain
      (all-ec2-images! ec2s cred)
-     (fn [_]
+     (fn [images]
        (ssmify-ec2 ec2s ssms)))))

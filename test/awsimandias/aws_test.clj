@@ -13,9 +13,8 @@
   (let [creds (aws/accounts-from-env!)]
     (testing "it gets all of them when they are there"
       (let [result @(aws/all-ec2-instances! creds)]
-        (pprint/pprint result)
         (is (= 3 (count result)))))
-    #_(testing "it gets all ec2-images for the customer"
+    (testing "it gets all ec2-images for the customer"
       (let [ec2s @(aws/all-ec2-instances! creds)
             result @(aws/all-ec2-images! ec2s creds)]
         (is (not (empty? result)))))
