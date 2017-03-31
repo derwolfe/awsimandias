@@ -3,6 +3,7 @@
    [com.amazonaws.regions Region RegionUtils])
   (:require
    [clojure.string :as str]
+   [clojure.pprint :as pprint]
    [environ.core :refer [env]]
    [amazonica.core :as ac]
    [amazonica.aws.ec2 :as ec2]
@@ -158,4 +159,7 @@
     (md/chain
      (all-ec2-images! ec2s cred)
      (fn [images]
+       (pprint/pprint images)
+       (pprint/pprint ec2s)
+       (pprint/pprint ssms)
        (ssmify-ec2 ec2s ssms)))))
