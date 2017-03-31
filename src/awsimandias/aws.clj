@@ -138,11 +138,23 @@
                 (ec2-images! image-ids (assoc creds :endpoint-name region))
                 (md/success-deferred ':images '()))))
      (fn [imgs]
-       (let [by-region (flatten (map #(:images %) imgs))]
-         (for [image by-region
-               :let [{:keys [image-id name]} image]
-               :when (some? image)]
-           {:image-id image-id :name name}))))))
+       (let [by-region (flatten (map #(:images %) imgs))
+
+             all-amis
+             (for [image by-region
+                   :let [{:keys [image-id name]} image]
+                   :when (some? image)]
+               {:image-id image-id :name name})]
+
+         (into {} all-amis))))))
+
+(defn enrich-os
+  [ec2s amis]
+  ;; this should likely be done on a
+  ;; amis should be a dict!
+  (for [ec2 ec2s]
+    (assoc ec2 :ami-name (:))
+    ))
 
 (defn ssmified-ec2-instances!
   "Get the ec2 instances and their ssm information. Once done, smash the lists
@@ -158,8 +170,7 @@
                 ssms (all-ssm-instances! cred)]
     (md/chain
      (all-ec2-images! ec2s cred)
-     (fn [images]
-       (pprint/pprint images)
-       (pprint/pprint ec2s)
-       (pprint/pprint ssms)
-       (ssmify-ec2 ec2s ssms)))))
+     (fn [amis]
+       (pprint/pprint amis)
+       (-> (enrich-os ec2s amis)
+           (ssmify-ec2 ssms))))))
