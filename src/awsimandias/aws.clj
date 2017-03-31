@@ -30,8 +30,7 @@
   (md/future
     (ac/with-credential [access-key secret-key "us-east-1"]
       (->> (ec2/describe-regions)
-           :regions
-           (map :endpoint)))))
+           :regions))))
 
 (defn ec2-instances!
   "Get all ec2 instances for a specific account in a specific region.
@@ -51,12 +50,19 @@
 
   Returns a deferred that will fire when each region has returned its response."
   [creds]
-  (md/let-flow [region-names (ec2-region-names! creds)]
+  (md/let-flow [regions (ec2-region-names! creds)]
     (md/chain
-     (apply md/zip (map #(ec2-instances! (assoc creds :endpoint-name %)) region-names))
-     (fn [cs]
-       (->> (mapcat #(:reservations %) cs)
-            (mapcat #(:instances %)))))))
+     (apply md/zip (for [region regions
+                         :let [{:keys[region-name endpoint]} region
+                               region-cred (assoc creds :endpoint-name endpoint)]]
+                         (md/chain
+                          (ec2-instances! region-cred)
+                          (fn [ec2s]
+                            (->> (:reservations ec2s)
+                                 :instances
+                                 (map #(assoc % :aws-region-name region-name)))))))
+     (fn [ec2s] (prn ec2s) ec2s)
+     #(flatten %))))
 
 (defn ssm-regions
   "Extract the SSM able regions from the java SDK. This could lag behind what is
@@ -109,6 +115,29 @@
         (assoc ec2 :has-ssm true)
         (assoc ec2 :has-ssm false)))))
 
+(defn ec2-images!
+  "Get all ec2 image ids and names for the ec2 instances currently in use."
+  [image-ids {:keys [access-key secret-key endpoint-name]}]
+  (md/future
+    (ac/with-credential [access-key secret-key endpoint-name]
+      (ec2/describe-images :image-ids image-ids))))
+
+(defn all-ec2-images!
+  [ec2s creds]
+  (let [regions (ssm-regions)]
+    (md/chain
+     ;; it is possible for this to return 404 if an image id is requested in a
+     ;; region where it doesn't exist
+     (apply md/zip
+            (for [region regions
+                  :let [ec2s-in-region (filter #(= (:aws-region-name %) region) ec2s)
+                        image-ids (map #(:image-id %) ec2s-in-region)
+                        _ (prn image-ids)
+                        ]]
+              (if (and (some? image-ids) (not (empty? image-ids)))
+                (ec2-images! image-ids (assoc creds :endpoint-name region))
+                (md/success-deferred '())))))))
+
 (defn ssmified-ec2-instances!
   "Get the ec2 instances and their ssm information. Once done, smash the lists
   together and tell us which devices have ssm.
@@ -121,4 +150,7 @@
   [cred]
   (md/let-flow [ec2s (all-ec2-instances! cred)
                 ssms (all-ssm-instances! cred)]
-    (ssmify-ec2 ec2s ssms)))
+    (md/chain
+     (all-ec2-images! ec2s cred)
+     (fn [_]
+       (ssmify-ec2 ec2s ssms)))))

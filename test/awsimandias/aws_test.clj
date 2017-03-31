@@ -13,7 +13,12 @@
   (let [creds (aws/accounts-from-env!)]
     (testing "it gets all of them when they are there"
       (let [result @(aws/all-ec2-instances! creds)]
+        (pprint/pprint result)
         (is (= 3 (count result)))))
+    #_(testing "it gets all ec2-images for the customer"
+      (let [ec2s @(aws/all-ec2-instances! creds)
+            result @(aws/all-ec2-images! ec2s creds)]
+        (is (not (empty? result)))))
     (testing "it gets all of ssms when they are there"
       (let [result @(aws/all-ssm-instances! creds)]
         (is (= 1 (count result)))))
@@ -21,7 +26,6 @@
       (let [result @(aws/ssmified-ec2-instances! creds)
             with-ssm (filter #(= true (:has-ssm %)) result)
             without-ssm (filter #(= false (:has-ssm %)) result)]
-        (pprint/pprint result)
         (is (= 3 (count result)))
         (is (= 1 (count with-ssm)))
         (is (= 2 (count without-ssm)))))))
