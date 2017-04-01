@@ -114,8 +114,8 @@
           :let [instance-id (:instance-id ec2)
                 ssm (get ssms-by-id instance-id)]]
       (if (not (nil? ssm))
-        (assoc ec2 :has-ssm true)
-        (assoc ec2 :has-ssm false)))))
+        (assoc ec2 ::has-ssm true)
+        (assoc ec2 ::has-ssm false)))))
 
 (defn ec2-images!
   "Get all ec2 image ids and names for the ec2 instances currently in use."
@@ -154,8 +154,8 @@
         :let [default "unknown os"
               match (get amis (:instance-id ec2))]]
     (if (some? match)
-      (assoc ec2 :os-name (:name match))
-      (assoc ec2 :os-name default))))
+      (assoc ec2 ::os-name (:name match))
+      (assoc ec2 ::os-name default))))
 
 (defn ssmified-ec2-instances!
   "Get the ec2 instances and their ssm information. Once done, smash the lists

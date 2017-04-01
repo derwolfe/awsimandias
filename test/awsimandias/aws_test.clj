@@ -24,9 +24,8 @@
         (is (= 1 (count result)))))
     (testing "get the ssmified instances"
       (let [result @(aws/ssmified-ec2-instances! creds)
-            with-ssm (filter #(= true (:has-ssm %)) result)
-            without-ssm (filter #(= false (:has-ssm %)) result)]
-        (pprint/pprint result)
+            with-ssm (filter #(= true (:awsimandias.aws/has-ssm %)) result)
+            without-ssm (filter #(= false (:awsimandias.aws/has-ssm %)) result)]
         (is (= 3 (count result)))
         (is (= 1 (count with-ssm)))
         (is (= 2 (count without-ssm)))))))
