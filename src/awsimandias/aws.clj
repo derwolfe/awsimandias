@@ -150,11 +150,12 @@
 
 (defn enrich-os
   [ec2s amis]
-  ;; this should likely be done on a
-  ;; amis should be a dict!
-  (for [ec2 ec2s]
-    (assoc ec2 :ami-name (:))
-    ))
+  (for [ec2 ec2s
+        :let [default "unknown os"
+              match (get amis (:instance-id ec2))]]
+    (if (some? match)
+      (assoc ec2 :os-name (:name match))
+      (assoc ec2 :os-name default))))
 
 (defn ssmified-ec2-instances!
   "Get the ec2 instances and their ssm information. Once done, smash the lists
@@ -171,6 +172,5 @@
     (md/chain
      (all-ec2-images! ec2s cred)
      (fn [amis]
-       (pprint/pprint amis)
        (-> (enrich-os ec2s amis)
            (ssmify-ec2 ssms))))))
