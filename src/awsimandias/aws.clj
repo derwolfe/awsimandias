@@ -2,14 +2,11 @@
   (:import
    [com.amazonaws.regions Region RegionUtils])
   (:require
-   [clojure.string :as str]
-   [clojure.pprint :as pprint]
    [environ.core :refer [env]]
    [amazonica.core :as ac]
    [amazonica.aws.ec2 :as ec2]
    [amazonica.aws.simplesystemsmanagement :as ssm]
-   [manifold.deferred :as md]
-   [taoensso.timbre :as timbre]))
+   [manifold.deferred :as md]))
 
 (defn accounts-from-env!
   []
@@ -30,8 +27,7 @@
   [{:keys [access-key secret-key]}]
   (md/future
     (ac/with-credential [access-key secret-key "us-east-1"]
-      (->> (ec2/describe-regions)
-           :regions))))
+      (:regions (ec2/describe-regions)))))
 
 (defn ec2-instances!
   "Get all ec2 instances for a specific account in a specific region.
@@ -59,12 +55,13 @@
   [creds]
   (md/let-flow [regions (ec2-region-names! creds)]
     (md/chain
-     (apply md/zip (for [region regions
-                         :let [{:keys[region-name endpoint]} region
-                               args (-> (assoc creds :endpoint-name endpoint)
-                                        (assoc :region-name region-name))]]
-                     (ec2-instances! args)))
-     #(flatten %))))
+     (apply md/zip
+            (for [region regions
+                  :let [{:keys [region-name endpoint]} region
+                        args (-> (assoc creds :endpoint-name endpoint)
+                                 (assoc :region-name region-name))]]
+              (ec2-instances! args)))
+     flatten)))
 
 (defn ssm-regions
   "Extract the SSM able regions from the java SDK. This could lag behind what is
@@ -94,7 +91,7 @@
     (md/chain
      (apply md/zip (map #(ssm-instances! (assoc creds :endpoint-name %)) regions))
      (fn [cs]
-       (mapcat #(:instance-information-list %) cs)))))
+       (mapcat :instance-information-list cs)))))
 
 (defn ssmify-ec2
   "Given two seqs, one of ec2 maps, and the other of ssm maps, match up the ec2
@@ -103,17 +100,13 @@
 
   Returns a list of ec2 devices (maps that should have a spec, maybe?) that will
   have had their os-name and os-versions fortified by the information present in
-  ssm.
-
-  (Note) That seems weird; why should there be an ssm enabled device if there
-  isn't one in ec2?"
+  ssm."
   [ec2s ssms]
-  ;; read these into a dictionary
-  (let [ssms-by-id (group-by #(:instance-id %) ssms)]
+  (let [ssms-by-id (group-by :instance-id ssms)]
     (for [ec2 ec2s
           :let [instance-id (:instance-id ec2)
                 ssm (get ssms-by-id instance-id)]]
-      (if (not (nil? ssm))
+      (if-not (nil? ssm)
         (assoc ec2 ::has-ssm true)
         (assoc ec2 ::has-ssm false)))))
 
@@ -133,19 +126,18 @@
      (apply md/zip
             (for [region regions
                   :let [ec2s-in-region (filter #(= (:aws-region-name %) region) ec2s)
-                        image-ids (map #(:image-id %) ec2s-in-region)]]
-              (if (not (empty? image-ids))
+                        image-ids (map :image-id ec2s-in-region)]]
+              (if (seq image-ids)
                 (ec2-images! image-ids (assoc creds :endpoint-name region))
-                (md/success-deferred ':images '()))))
+                (md/success-deferred :images '()))))
      (fn [imgs]
-       (let [by-region (flatten (map #(:images %) imgs))
+       (let [by-region (flatten (map :images imgs))
 
              all-amis
              (for [image by-region
                    :let [{:keys [image-id name]} image]
                    :when (some? image)]
                {:image-id image-id :name name})]
-
          (into {} all-amis))))))
 
 (defn enrich-os

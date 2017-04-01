@@ -17,6 +17,7 @@
   :plugins [[lein-auto "0.1.2"]
             [lein-ancient "0.6.10"]
             [lein-cljfmt "0.3.0"]
+            [lein-kibit "0.1.3"]
             [lein-pprint "1.1.1"]
             [lein-environ "1.0.2"]
             [jonase/eastwood "0.2.3"]

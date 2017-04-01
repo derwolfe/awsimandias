@@ -1,9 +1,8 @@
 (ns awsimandias.aws-test
   (:require
    [clojure.test :refer :all]
-   [clojure.pprint :as pprint]
-   [awsimandias.aws :as aws]
-   [manifold.deferred :as md]))
+   ;; [clojure.pprint :as pprint]
+   [awsimandias.aws :as aws]))
 
 ;; this is gross and meant to be temporary. Assuming we have network
 ;; connectivity, check that we are able to use amazonica's stuff to actually

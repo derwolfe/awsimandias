@@ -1,6 +1,5 @@
 (ns awsimandias.server-test
   (:require
-   ;;[awsimandias.server :as server]
    [aleph
     [http :as http]
     [netty :as netty]]
