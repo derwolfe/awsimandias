@@ -118,6 +118,13 @@
       (ec2/describe-images :image-ids image-ids))))
 
 (defn all-ec2-images!
+  "Get all ec2 images across all customer regions.
+
+  ec2s - a list of ec2 instances
+  creds - map containing an aws secret key and aws access key
+
+  Returns a deferred containing a list of maps representing the image name and
+  image id."
   [ec2s creds]
   (let [regions (ssm-regions)]
     (md/chain
@@ -132,7 +139,8 @@
                 (md/success-deferred :images '()))))
      (fn [imgs]
        (let [by-region (flatten (map :images imgs))
-
+             ;; this query could likely be simplified to only include id and name instead of
+             ;; returning extra data.
              all-amis
              (for [image by-region
                    :let [{:keys [image-id name]} image]
@@ -141,9 +149,14 @@
          (into {} all-amis))))))
 
 (defn enrich-os
+  "Take a list of ec2 instances and a list of maps that contain the ami
+  information. If there are instances that are using any of the amis, add that
+  data to the ec2 instance.
+
+  Returns a sequence of maps."
   [ec2s amis]
   (for [ec2 ec2s
-        :let [default "unknown os"
+        :let [default "Unknown OS"
               match (get amis (:instance-id ec2))]]
     (if (some? match)
       (assoc ec2 ::os-name (:name match))
